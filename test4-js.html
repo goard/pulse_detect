@@ -1,0 +1,162 @@
+<script>
+cv['onRuntimeInitialized']=()=>{
+document.getElementById('btn-start').addEventListener("click", setPlay);
+document.getElementById('btn-stop').addEventListener("click", setStop);
+document.getElementById("videoInput").style.display = "none";
+var video = document.getElementById("videoInput"); // video is the id of video tag
+var cap = new cv.VideoCapture(video);
+var canvasOutput = document.getElementById('canvasOutput');
+var canvasContext = canvasOutput.getContext('2d');
+const FPS = 30;
+var src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+var dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+var R = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+var rgbaPlanes = new cv.MatVector();
+var rect = new cv.Rect(280, 220, 90, 50);
+var point1 = new cv.Point (280, 190);
+var point2 = new cv.Point (370, 240);
+var point3 = new cv.Point (500, 400);
+var scalar1 = new cv.Scalar(255, 0, 0, 0);
+var scalar2 = new cv.Scalar(255, 255, 255, 0);
+var mean;
+var streaming;
+var interval;
+var begin;
+var val = [];
+var fft = nj.array([]);
+var dat1;
+var bmp;
+
+function setChart(){
+var time = new Date();
+  Plotly.plot('chart',[{
+    y: [mean],
+    mode: 'lines',
+    //x:[Date.now()],
+    line: {shape: 'spline'},
+    //type: 'scatter'
+    //type:'spline'
+  }]);
+   
+  let cnt = 0;
+  let aver;
+  interval = setInterval(function(){
+    processVideo();
+    if(cnt >= 60){
+      val.push(mean);
+      if(cnt===60){dat1 = Date.now()}
+    }; //val.set(cnt-60,mean)};
+    if(cnt === 260){
+      let L = val.length;
+      var freq = L*1000/(Date.now() - dat1);
+      var bandlow=Math.round(0.8/freq*L);
+      var bandhigh=Math.round(3/freq*L);
+      //calculate fft
+      var arr = nj.array(val).reshape([L,1]);
+      var RI = nj.concatenate(arr, nj.zeros([L,1]));
+      fft = nj.fft(RI);
+      fft.pow(2,false);
+      var sl0 = fft.slice(0,[1]).tolist();
+      var arr0 = nj.array(sl0.flat());
+      var sl1 =fft.slice(0,1).tolist();
+      var arr1 = nj.array(sl1.flat());
+      arr0.add(arr1,false)
+      var num = nj.sqrt(arr0);
+      num.divide(L,false);
+      var full1 = num.multiply(2,false);
+      var full = full1.tolist();
+      //calculate max
+      var max1 = Math.max.apply(null, full.slice(bandlow,bandhigh));
+      var index= full.indexOf(max1);
+      bmp = Math.round(freq*index/L*60);
+      var foo = [];
+      for (var i = bandlow; i <= bandhigh; i++) {
+      foo.push(i);
+      }
+      var arr2 = nj.array(foo);
+      arr2.multiply(freq,false);
+      arr2.multiply(60,false);
+      arr2.divide(L,false);
+      var bpms = arr2.tolist();
+      Plotly.newPlot('chartfft',[{
+      y: full.slice(bandlow,bandhigh),
+      x: bpms,
+      mode: 'lines'
+      //line: {shape: 'spline'},
+      //type: 'scatter'
+      //type:'spline'
+      }]);
+    }
+    cnt++;
+    //console.log(val);
+    /*Plotly.relayout('chart',{
+      xaxis: {
+        range: [olderTime,futureTime]
+      }
+    });*/
+    Plotly.extendTraces('chart',{y:[[mean]]}, [0]);
+  }
+  , 1000/FPS - (Date.now() - begin));
+}
+
+function setfft(){
+  
+}
+
+
+function setPlay(){
+  streaming = true;
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    .then(function(stream) {
+        video.srcObject = stream;
+        video.play();
+    })
+    .catch(function(err) {
+        console.log("An error occurred! " + err);
+    });
+  setChart();
+}
+
+function setStop(){
+  streaming = false;
+  let stream = video.srcObject;
+  let tracks = stream.getTracks();
+  tracks.forEach(function(track) {
+    track.stop();
+  });
+  video.srcObject = null;
+  canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+  clearInterval(interval);
+  setTimeout(function(){Plotly.purge('chart')}, 3000);
+}
+
+function processVideo() {
+    try {
+        if (!streaming) {
+            // clean and stop.
+            src.delete();
+            dst.delete();
+            R.delete();
+            return;
+        }
+        begin = Date.now();
+        cap.read(src); //start proccesing
+        dst =src.roi(rect);
+        cv.split(dst, rgbaPlanes);
+        R = rgbaPlanes.get(1);
+        var a = nj.uint8(R.data);
+        mean = a.mean();
+        R.delete();
+        cv.rectangle(src, point1, point2, scalar1, 2);
+        cv.putText(src,'bmp '+bmp,point3,cv.FONT_HERSHEY_SIMPLEX,1,scalar2,2);
+        cv.imshow("canvasOutput", src);
+        // 
+        //let delay = 1000/FPS - (Date.now() - begin);
+        //setTimeout(processVideo, delay);
+    } catch (err) {
+        console.log(err);
+    }
+}
+// schedule the first one.
+}
+</script>
