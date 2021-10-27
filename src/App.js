@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import cv from "./services/opencv";
+import cv from "./services/cv";
 
 const maxVideoSize = 200;
 
@@ -17,19 +17,12 @@ function App() {
     updateProcessing(true);
     const ctx = canvasEl.current.getContext("2d");
     ctx.drawImage(videoElement.current, 0, 0, maxVideoSize, maxVideoSize);
-    const img = cv.imread(canvasEl.current);
-    let result = new cv.Mat();
-    cv.cvtColor(img, result, cv.COLOR_BGR2GRAY);
-    cv.imshow(canvasEl.current, result)
-
-    // const image = ctx.getImageData(0, 0, maxVideoSize, maxVideoSize);
+    const image = ctx.getImageData(0, 0, maxVideoSize, maxVideoSize);
     // Processing image
     // This converts the image to a greyscale.
-    // const processedImage = await cv.imageProcessing(image);
+    const processedImage = await cv.imageProcessing(image);
     // Render the processed image to the canvas
-    // ctx.putImageData(processedImage.data.payload, 0, 0);
-    // const access = await cv.accessDom()
-    // console.log(access.data.payload)
+    ctx.putImageData(processedImage.data.payload, 0, 0);
     updateProcessing(false);
   }
 
@@ -72,6 +65,13 @@ function App() {
     }
 
     load();
+
+    async function loadSW () {
+      await cv.load()
+      setReadySW(true)
+    }
+    // Load opencv from service worker
+    loadSW()
   
   }, []);
 
