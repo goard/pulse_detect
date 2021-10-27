@@ -96,6 +96,7 @@ module.exports = function (webpackEnv) {
 
   const shouldUseReactRefresh = env.raw.FAST_REFRESH;
 
+  
   // common function to get style loaders
   const getStyleLoaders = (cssOptions, preProcessor) => {
     const loaders = [
@@ -159,6 +160,12 @@ module.exports = function (webpackEnv) {
   };
 
   return {
+    devServer: {
+      headers: {
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Opener-Policy": "same-origin"
+      }
+    },
     mode: isEnvProduction ? 'production' : isEnvDevelopment && 'development',
     // Stop compilation early in production
     bail: isEnvProduction,
@@ -369,6 +376,16 @@ module.exports = function (webpackEnv) {
           oneOf: [
             // TODO: Merge this config once `image/avif` is in the mime-db
             // https://github.com/jshttp/mime-db
+            { 
+              test: /\.wasm$/, // only load WASM files (ending in .wasm)
+              // only files in our src/ folder
+              include: path.resolve(__dirname, "src"), 
+              use: [{ 
+                 // load and use the wasm-loader dictionary
+                 loader: require.resolve("wasm-loader"), 
+                 options: {} 
+              }],
+            },
             {
               test: [/\.avif$/],
               loader: require.resolve('url-loader'),
@@ -545,7 +562,7 @@ module.exports = function (webpackEnv) {
               // its runtime that would otherwise be processed through "file" loader.
               // Also exclude `html` and `json` extensions so they get processed
               // by webpacks internal loaders.
-              exclude: [/\.(js|mjs|jsx|ts|tsx)$/, /\.html$/, /\.json$/],
+              exclude: [/\.(js|mjs|jsx|ts|tsx)$/, /\.html$/, /\.json$/, /\.wasm$/],
               options: {
                 name: 'static/media/[name].[hash:8].[ext]',
               },
