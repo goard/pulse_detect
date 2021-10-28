@@ -1,14 +1,25 @@
 import { useEffect, useState, useRef } from "react";
-import cv from "./services/opencv";
+// import cv from "./services/opencv";
 
 const videoHeight = 240;
-const videoWidht = 320;
+const videoWidth = 320;
 
 function App() {
   const [startStopVideoToggle, setStartStopVideoToggle] = useState(false);
   const [loadVideoDisableBtn, setLoadVideoDisableBtn] = useState(false);
+  const [streamVideo, setStreamVideo] = useState(null);
+  const [cv, setCv] = useState(null);
+  const [mat, setMat] = useState({
+    src: null,
+    dst: null,
+    cap: null,
+    gray: null,
+    faces: null,
+    classifier: null,
+  });
   const videoElement = useRef(null);
   const canvasEl = useRef(null);
+  const FPS = 30;
 
   async function initCamera() {
     setLoadVideoDisableBtn(true);
@@ -18,11 +29,12 @@ function App() {
         audio: false,
         video: {
           facingMode: "user",
-          width: videoWidht,
+          width: videoWidth,
           height: videoHeight,
         },
       });
       video.srcObject = stream;
+      setStreamVideo(stream);
 
       return new Promise((resolve) => {
         video.oncanplay = () => {
@@ -45,9 +57,37 @@ function App() {
 
   function stopVideo() {
     let video = videoElement.current;
-    video.pause();
-    video.srcObject = null;
+    if (video) {
+      video.pause();
+      video.srcObject = null;
+    }
+    if (streamVideo) streamVideo.getVideoTracks()[0].stop();
     setStartStopVideoToggle(false);
+    let ctx = canvasEl.current.getContext("2d");
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // ctx.clearRect(0, 0, 250, 250);
+  }
+
+  function processVideo() {
+    try {
+      if (startStopVideoToggle) {
+        // clean and stop.
+        mat.src.delete();
+        mat.dst.delete();
+        return;
+      }
+      let begin = Date.now();
+      // start processing.
+      mat.cap.read(mat.src);
+      cv.cvtColor(mat.src, mat.dst, cv.COLOR_RGBA2GRAY);
+      cv.imshow(canvasEl.current, mat.dst);
+      // schedule the next one.
+      let delay = 1000 / FPS - (Date.now() - begin);
+      setTimeout(processVideo, delay);
+    } catch (err) {
+      console.log(err);
+    }
   }
 
   /**
@@ -59,8 +99,27 @@ function App() {
       stopVideo();
     } else {
       loadVideo();
+      setTimeout(processVideo, 0);
     }
   }
+
+  useEffect(() => {
+    async function loadCv() {
+      const moduleCv = await import("./services/opencv");
+      const opencv = await moduleCv.default;
+      console.log("hi 1");
+      setCv(opencv);
+      setMat({
+        src: new opencv.Mat(videoHeight, videoWidth, opencv.CV_8UC4),
+        dst: new opencv.Mat(videoHeight, videoWidth, opencv.CV_8UC1),
+        cap: new opencv.VideoCapture(videoElement.current),
+        gray: new opencv.Mat(),
+        faces: new opencv.RectVector(),
+        classifier: new opencv.CascadeClassifier(),
+      });
+    }
+    loadCv();
+  }, []);
 
   return (
     <div
@@ -93,7 +152,7 @@ function App() {
         >
           <video
             className="video"
-            width={videoWidht}
+            width={videoWidth}
             height={videoHeight}
             playsInline
             ref={videoElement}
@@ -111,7 +170,7 @@ function App() {
           <canvas
             id="canvas"
             ref={canvasEl}
-            width={videoWidht}
+            width={videoWidth}
             height={videoHeight}
           ></canvas>
           <p>Canvas</p>
