@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-// import cv from "./services/opencv";
+import xmlDataSrc from "./services/haarcascade_frontalface_default.xml";
 
 const videoHeight = 240;
 const videoWidth = 320;
@@ -75,12 +75,25 @@ function App() {
         // clean and stop.
         mat.src.delete();
         mat.dst.delete();
+        mat.gray.delete();
+        mat.faces.delete();
+        mat.classifier.delete();
         return;
       }
       let begin = Date.now();
       // start processing.
       mat.cap.read(mat.src);
-      cv.cvtColor(mat.src, mat.dst, cv.COLOR_RGBA2GRAY);
+      mat.src.copyTo(mat.dst);
+      cv.cvtColor(mat.dst, mat.gray, cv.COLOR_RGBA2GRAY, 0);
+      // detect faces.
+      mat.classifier.detectMultiScale(mat.gray, mat.faces, 1.1, 3, 0);
+      // draw faces.
+      for (let i = 0; i < mat.faces.size(); ++i) {
+        let face = mat.faces.get(i);
+        let point1 = new cv.Point(face.x, face.y);
+        let point2 = new cv.Point(face.x + face.width, face.y + face.height);
+        cv.rectangle(mat.dst, point1, point2, [255, 0, 0, 255]);
+      }
       cv.imshow(canvasEl.current, mat.dst);
       // schedule the next one.
       let delay = 1000 / FPS - (Date.now() - begin);
@@ -120,6 +133,43 @@ function App() {
     }
     loadCv();
   }, []);
+
+  useEffect(() => {
+    if (mat.classifier) {
+      const createFileFromUrl = function (path, url, callback) {
+        let request = new XMLHttpRequest();
+        request.open("GET", url, true);
+        request.responseType = "arraybuffer";
+        request.onload = function (ev) {
+          if (request.readyState === 4) {
+            if (request.status === 200) {
+              // console.log(request.response);
+              let data = new Uint8Array(request.response);
+              // console.log("data", data);
+              cv.FS_createDataFile("/", path, data, true, false, false);
+              callback();
+            } else {
+              console.log(
+                "Failed to load " + url + " status: " + request.status
+              );
+            }
+          }
+        };
+        request.send();
+      };
+
+      function loadHaarcascade() {
+        mat.classifier.load("haarcascade_frontalface_default.xml");
+      }
+      createFileFromUrl(
+        "haarcascade_frontalface_default.xml",
+        xmlDataSrc,
+        loadHaarcascade
+      );
+
+      // console.log(mat.classifier);
+    }
+  }, [mat]);
 
   return (
     <div
