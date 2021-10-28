@@ -1,128 +1,122 @@
 import { useEffect, useState, useRef } from "react";
 import cv from "./services/opencv";
 
-const maxVideoSize = 200;
+const videoHeight = 240;
+const videoWidht = 320;
 
 function App() {
-  const [processing, updateProcessing] = useState(false);
-  const [readySW, setReadySW] = useState(false);
+  const [startStopVideoToggle, setStartStopVideoToggle] = useState(false);
+  const [loadVideoDisableBtn, setLoadVideoDisableBtn] = useState(false);
   const videoElement = useRef(null);
   const canvasEl = useRef(null);
+
+  async function initCamera() {
+    setLoadVideoDisableBtn(true);
+    let video = videoElement.current;
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: "user",
+          width: videoWidht,
+          height: videoHeight,
+        },
+      });
+      video.srcObject = stream;
+
+      return new Promise((resolve) => {
+        video.oncanplay = () => {
+          resolve(video);
+          setLoadVideoDisableBtn(false);
+        };
+      });
+    }
+    const errorMessage =
+      "This browser does not support video capture, or this device does not have a camera";
+    alert(errorMessage);
+    return Promise.reject(errorMessage);
+  }
+
+  async function loadVideo() {
+    const videoLoaded = await initCamera();
+    videoLoaded.play();
+    setStartStopVideoToggle(true);
+  }
+
+  function stopVideo() {
+    let video = videoElement.current;
+    video.pause();
+    video.srcObject = null;
+    setStartStopVideoToggle(false);
+  }
+
   /**
    * In the onClick event we'll capture a frame within
    * the video to pass it to our service.
    */
-  async function onClick() {
-    // это наше приложение:
-    updateProcessing(true);
-    const ctx = canvasEl.current.getContext("2d");
-    ctx.drawImage(videoElement.current, 0, 0, maxVideoSize, maxVideoSize);
-    const img = cv.imread(canvasEl.current);
-    let result = new cv.Mat();
-    cv.cvtColor(img, result, cv.COLOR_BGR2GRAY);
-    cv.imshow(canvasEl.current, result)
-
-    // const image = ctx.getImageData(0, 0, maxVideoSize, maxVideoSize);
-    // Processing image
-    // This converts the image to a greyscale.
-    // const processedImage = await cv.imageProcessing(image);
-    // Render the processed image to the canvas
-    // ctx.putImageData(processedImage.data.payload, 0, 0);
-    // const access = await cv.accessDom()
-    // console.log(access.data.payload)
-    updateProcessing(false);
+  function onClick() {
+    if (startStopVideoToggle) {
+      stopVideo();
+    } else {
+      loadVideo();
+    }
   }
-
-  /**
-   * In the useEffect hook we'll load the video
-   * element to show what's on camera.
-   */
-  useEffect(() => {
-    async function initCamera() {
-      videoElement.current.width = maxVideoSize;
-      videoElement.current.height = maxVideoSize;
-
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: "user",
-            width: maxVideoSize,
-            height: maxVideoSize,
-          },
-        });
-        videoElement.current.srcObject = stream;
-
-        return new Promise((resolve) => {
-          videoElement.current.onloadedmetadata = () => {
-            resolve(videoElement.current);
-          };
-        });
-      }
-      const errorMessage =
-        "This browser does not support video capture, or this device does not have a camera";
-      alert(errorMessage);
-      return Promise.reject(errorMessage);
-    }
-
-    async function load() {
-      const videoLoaded = await initCamera();
-      videoLoaded.play();
-      return videoLoaded;
-    }
-
-    load();
-  
-  }, []);
-
-  // useEffect(() => {
-  //   const ctx = canvasEl.current.getContext("2d");
-  //   const FPS = 30;
-  //   if (readySW) {
-  //     async function processVideo() {
-  //       let begin = Date.now();
-  //       ctx.drawImage(videoElement.current, 0, 0, maxVideoSize, maxVideoSize);
-  //       const image = ctx.getImageData(0, 0, maxVideoSize, maxVideoSize).data;
-  //       // Processing image
-
-  //       // Render the processed image to the canvas
-  //       ctx.clearRect(0, 0, maxVideoSize, maxVideoSize);
-  //       ctx.putImageData(processedVideo.data.payload, 0, 0);
-  //       let delay = 1000 / FPS - (Date.now() - begin);
-  //       setTimeout(processVideo, delay);
-  //     }
-  //     // const intervalId = setTimeout(processVideo, 0);
-  //     // return () => {
-  //     //   clearTimeout(intervalId);
-  //     // };
-  //   }
-  // }, [readySW]);
 
   return (
     <div
       style={{
         display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
         flexDirection: "column",
+        alignItems: "center",
       }}
     >
-      <video className="video" playsInline ref={videoElement} />
-      Video
+      <h1>Hi heardbeat detect use OpenCV</h1>
       <button
-        disabled={processing}
-        style={{ width: maxVideoSize, padding: 10 }}
+        disabled={loadVideoDisableBtn}
+        style={{ width: 150, padding: 10, marginBottom: 15 }}
         onClick={onClick}
       >
-        {processing ? "Processing..." : "Take a photo"}
+        {startStopVideoToggle ? "Stop" : "Start"}
       </button>
-      <canvas
-        id="canvas"
-        ref={canvasEl}
-        width={maxVideoSize}
-        height={maxVideoSize}
-      ></canvas>
-      Canvas
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <video
+            className="video"
+            width={videoWidht}
+            height={videoHeight}
+            playsInline
+            ref={videoElement}
+          />
+          <p>Video</p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <canvas
+            id="canvas"
+            ref={canvasEl}
+            width={videoWidht}
+            height={videoHeight}
+          ></canvas>
+          <p>Canvas</p>
+        </div>
+      </div>
     </div>
   );
 }
