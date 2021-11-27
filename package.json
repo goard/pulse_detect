@@ -1,0 +1,31 @@
+{
+  "name": "pulse_detect",
+  "version": "0.0.1",
+  "description": "Web app detect heardbeat pulse use opencv and DFT",
+  "main": "codeMain.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html",
+    "build": "rm -rf public/* && parcel build index.html --out-dir public/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/goard/pulse_detect.git"
+  },
+  "keywords": [
+    "opencv",
+    "pulse",
+    "heardbeat",
+    "detect",
+    "wasm"
+  ],
+  "author": "Ayur_Gonchikov <hori.tumat@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/goard/pulse_detect/issues"
+  },
+  "homepage": "https://github.com/goard/pulse_detect#readme",
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5"
+  }
+}
