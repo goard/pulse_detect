@@ -1,8 +1,8 @@
 {
   "name": "pulse_detect",
-  "version": "0.0.1",
-  "description": "Web app detect heardbeat pulse use opencv and DFT",
-  "main": "codeMain.js",
+  "version": "0.1.0",
+  "description": "Premium rPPG heartbeat detection using MediaPipe FaceMesh and POS algorithm",
+  "main": "heartbeat.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "parcel index.html",
@@ -13,11 +13,13 @@
     "url": "git+https://github.com/goard/pulse_detect.git"
   },
   "keywords": [
-    "opencv",
+    "rPPG",
     "pulse",
-    "heardbeat",
+    "heartbeat",
     "detect",
-    "wasm"
+    "mediapipe",
+    "facemesh",
+    "pos-algorithm"
   ],
   "author": "Ayur_Gonchikov <hori.tumat@gmail.com>",
   "license": "ISC",
