@@ -1,3 +1,6 @@
+import { SignalProcessor } from './processor.js';
+
+
 const videoElement = document.getElementById('input_video');
 const canvasElement = document.getElementById('overlay');
 const canvasCtx = canvasElement.getContext('2d');

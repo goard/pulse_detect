@@ -4,9 +4,10 @@
   "description": "Premium rPPG heartbeat detection using MediaPipe FaceMesh and POS algorithm",
   "main": "heartbeat.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "parcel index.html",
-    "build": "rm -rf public/* && parcel build index.html --out-dir public/"
+    "dev": "vite",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -28,6 +29,6 @@
   },
   "homepage": "https://github.com/goard/pulse_detect#readme",
   "devDependencies": {
-    "parcel-bundler": "^1.12.5"
+    "vite": "^7.3.0"
   }
 }

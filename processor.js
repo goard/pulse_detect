@@ -1,4 +1,4 @@
-class SignalProcessor {
+export class SignalProcessor {
     constructor(bufferSize = 150, fps = 30) {
         this.bufferSize = bufferSize;
         this.fps = fps;
